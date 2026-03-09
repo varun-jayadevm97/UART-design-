@@ -1,0 +1,22 @@
+module uart_top(input logic rst,
+                input logic clk,
+                input logic [7:0]data_in,
+                input logic wr_enb,
+                output logic[7:0] data_out,
+                output logic rdy
+    
+                );
+
+
+logic rx_clk_en; 
+logic tx_clk_en; 
+
+logic tx_temp; 
+
+baud_rate_genrator bg(clk,rst,tx_clk_en,rx_clk_en);
+
+uart_sender us(clk,wr_enb,tx_clk_en,rst,data_in,tx_temp);
+
+uart_reciever ur(clk,rst,tx_temp,rx_clk_en,rdy,data_out);
+
+endmodule
