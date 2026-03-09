@@ -1,0 +1,91 @@
+module uart_tb;
+    logic clk;
+    logic rst;
+    logic [7:0] data_in;
+    logic wr_enb;
+
+    logic [7:0] dout;
+    logic rdy;   
+
+
+    uart_top dut (
+        .rst     (rst),
+        .clk     (clk),
+        .data_in (data_in),
+        .wr_enb  (wr_enb),
+        .dout    (dout),
+        .rdy    (rdy)
+    );
+
+   
+    initial clk = 0;
+    always #5 clk = ~clk;   
+
+  
+property start_bit_check;
+    @(posedge clk)
+    wr_enb |-> ##[1:20] (dut.tx_temp == 1'b0);
+endproperty
+
+assert property(start_bit_check)
+    else $error("Start bit not detected!");
+
+
+    property data_match;
+    @(posedge clk)
+    rdy |-> (dout == data_in);
+endproperty
+
+assert property(data_match)
+    else $error("Data mismatch between TX and RX!");
+
+    property tx_idle_after_rx;
+    @(posedge clk)
+    rdy |-> (dut.tx_temp == 1'b1);
+endproperty
+
+assert property(tx_idle_after_rx)
+    else $error("TX not idle when RX completed!");
+
+
+
+
+
+
+    initial begin
+       
+        rst     = 0;
+        wr_enb  = 0;
+        data_in = 8'h00;
+
+        
+        @(posedge clk);
+        rst = 1;
+        @(posedge clk);
+        rst = 0;
+
+        @(posedge clk);
+        data_in = 8'h41;  
+        wr_enb  = 1;
+
+        @(posedge clk);
+        wr_enb  = 0;      
+        wait(rdy);
+
+        $display("Received data = %h", dout);
+
+       #200
+        $finish;
+    end
+
+
+
+
+
+
+
+
+
+
+
+endmodule
