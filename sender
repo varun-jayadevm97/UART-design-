@@ -1,0 +1,80 @@
+module uart_sender (
+    input logic       clk,
+   
+    input  logic      wr_en,      // comes from tb
+    input  logic      enb,         //baud 
+     input  logic      rst,        
+    input logic [7:0] data_in,
+    output logic   tx,
+
+);
+
+
+parameter STATE_IDLE  = 2'b00;
+parameter STATE_START = 2'b01;
+parameter STATE_DATA  = 2'b10;
+parameter STATE_STOP  = 2'b11;
+
+
+logic [1:0] state;
+logic [7:0] data_reg;
+logic [2:0] index ;
+
+
+always_ff @(posedge clk) begin
+    if (rst) begin
+        state    <= STATE_IDLE;
+        tx       <= 1'b1;     
+        data_reg <= 8'd0;
+        index   <= 3'd0;
+    end else begin
+        case (state)
+
+            STATE_IDLE: begin
+                tx <= 1'b1; 
+
+                if (wr_en) begin
+                    data_reg <= data_in;  
+                    index   <= 3'd0;
+                    state    <= STATE_START;
+                end
+            end
+
+            STATE_START: begin
+                if (enb) begin
+                    tx    <= 1'b0;       
+                    state <= STATE_DATA;
+                end
+            end
+
+
+            STATE_DATA: begin
+                if (enb) begin
+                    tx <= data_reg[index];
+
+                    if (index == 3'd7)
+                        state <= STATE_STOP;
+                    else
+                        index <= index + 1'b1;
+                end
+            end
+
+            STATE_STOP: begin
+                if (enb) begin
+                    tx    <= 1'b1;        /
+                    state <= STATE_IDLE;
+                end
+            end
+
+            default: begin
+                state <= STATE_IDLE;
+                tx    <= 1'b1;
+            end
+        endcase
+    end
+end
+
+
+assign tx_busy = (state != STATE_IDLE);
+
+endmodule
